@@ -109,14 +109,14 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 					}
 					break;
 				}
-			
+
 			}
 		}
 		if (fileNeedsUpdate) saveHighScores();
-		
+
 		return fileNeedsUpdate;
 	}
-	
+
 	/**
 	 * add a highscore from player at given position 
 	 * @param i
@@ -189,6 +189,10 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 		upperScore = new int[nPlayers];
 		lowerScore = new int[nPlayers];
 		totalScore = new int[nPlayers];
+		allowAdditionalYahtzees = new boolean[nPlayers];
+		for (int player = 0; player < nPlayers; player++) {
+			allowAdditionalYahtzees[player] = true;
+		}		
 
 		for (int round = 0; round < N_SCORING_CATEGORIES; round++) {
 			for (int player = 0; player < nPlayers; player++) {	
@@ -224,7 +228,7 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 		} else {
 			display.printMessage("Congratulations, " + winner + ", you won with a total score of " + winningScore + "!");
 		}
-				
+
 	}
 
 	/**
@@ -242,7 +246,21 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 		usedCategories[player][category] = true;
 
 		int score = calculateScore(category);
+
+		if (category == YAHTZEE) {
+			if (score == 0) {
+				allowAdditionalYahtzees[player] = false;
+			}			
+		} else {
+			if (allowAdditionalYahtzees[player] 
+			    && usedCategories[player][YAHTZEE] 
+			    && (calculateOfAKindValues(5) > 0)) {
+				score += SCORE_ADDITONAL_YAHTZEES;
+			}
+		}
+
 		display.updateScorecard(category, player, score);
+		
 		if (category < UPPER_SCORE) {
 			upperScore[player] += score;
 			display.updateScorecard(UPPER_SCORE, player, upperScore[player]);
@@ -251,10 +269,12 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 			display.updateScorecard(LOWER_SCORE, player, lowerScore[player]);
 		}
 		totalScore[player] = upperScore[player] + lowerScore[player];
+
 		if (upperScore[player] >= SCORE_UPPER_BONUS_LIMIT) {
 			display.updateScorecard(UPPER_BONUS, player, SCORE_UPPER_BONUS);
 			totalScore[player] += SCORE_UPPER_BONUS;
 		}
+
 		display.updateScorecard(TOTAL, player, totalScore[player]);
 	}
 
@@ -398,9 +418,12 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 	 * @param reRollAll
 	 */
 	private void rollDice(boolean reRollAll) {
+		//int allSameValue = rgen.nextInt(1, N_FACES);
 		for (int i = 0; i < N_DICE; i++) {
-			if (reRollAll || display.isDieSelected(i)) 
+			if (reRollAll || display.isDieSelected(i)) {
 				dice[i] = rgen.nextInt(1, N_FACES);
+				//dice[i] = allSameValue;
+			}				
 		}
 	}
 
@@ -415,6 +438,7 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 	private static final int SCORE_UPPER_BONUS = 35;
 	private static final String HIGHSCORE_FILE = "HighScores.txt";
 	private static final int N_HIGHSCORES = 10;
+	private static final int SCORE_ADDITONAL_YAHTZEES = 100;
 
 
 	/* Private instance variables */
@@ -429,5 +453,6 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 	private int[] totalScore;
 	private ArrayList<String> highScoreNames;
 	private ArrayList<Integer> highScoreValues;
+	private boolean[] allowAdditionalYahtzees;
 
 }
