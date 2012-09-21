@@ -4,6 +4,9 @@
  * This program will eventually play the Yahtzee game.
  */
 
+import java.io.*;
+import java.util.*;
+
 import acm.io.*;
 import acm.program.*;
 import acm.util.*;
@@ -11,9 +14,121 @@ import acm.util.*;
 public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 
 	public void run() {
+		showHighScores();
 		setupPlayers();
 		initDisplay();
 		playGame();
+	}
+
+	/**
+	 * Show high scores of previous games
+	 */
+	private void showHighScores() {		
+		String text = "Highscores:\n";
+		loadHighScores();
+
+		if (highScoreNames.size() == 0) {
+			text += "none available yet";
+		} else {
+			for (int i = 0; i < highScoreNames.size(); i++) {
+				int value = highScoreValues.get(i);
+				if (value / 100 == 0) text += "  ";
+				if (value / 10 == 0) text += "  ";
+				text += value + " " + highScoreNames.get(i) + "\n";
+			}
+		}
+
+		IODialog dialog = getDialog();
+		dialog.println(text);		
+	}
+
+	/**
+	 * load high scores from file
+	 */
+	private void loadHighScores() {
+		highScoreNames = new ArrayList<String>();
+		highScoreValues = new ArrayList<Integer>();
+		File file = new File(HIGHSCORE_FILE);
+		try {
+			Scanner scanner = new Scanner(new FileReader(file));
+			while (scanner.hasNextLine()) {
+				processHighScoresLine(scanner.nextLine());
+			}
+			scanner.close();
+		} catch (IOException ex) {
+			// don't care do nothing
+		}
+	}
+
+	/**
+	 * parse single line of high score file
+	 * @param line
+	 */
+	protected void processHighScoresLine(String line){
+		Scanner scanner = new Scanner(line);
+		scanner.useDelimiter("=");
+		if (scanner.hasNext()) {
+			highScoreValues.add(new Integer(scanner.next()));
+			highScoreNames.add(scanner.next());
+		}
+	}
+
+	/** 
+	 * save high scores to file
+	 */
+	private void saveHighScores() {
+		try {
+			PrintWriter printWriter = new PrintWriter(new FileWriter(HIGHSCORE_FILE));
+			for (int i = 0; i < highScoreNames.size(); i++) {
+				printWriter.println(highScoreValues.get(i) + "=" + highScoreNames.get(i));
+			}
+			printWriter.close();
+		} catch (IOException ex) {
+			throw new ErrorException(ex);
+		}
+	}
+
+	/**
+	 * check for new high scores and return if any have been found
+	 * @return
+	 */
+	private boolean newHighScore() {
+		boolean fileNeedsUpdate = false;
+		for (int player = 0; player < nPlayers; player++) {
+			boolean newHighScore = false;
+			for (int i = highScoreNames.size() - 1; i >= 0; i--) {				
+				if (highScoreValues.get(i).intValue() <= totalScore[player]) {
+					newHighScore = true;
+					fileNeedsUpdate = true;
+					if (i == 0) {
+						addHighScore(i, player);
+					}
+				} else {
+					if (newHighScore) {
+						addHighScore(i + 1, player);						
+					}
+					break;
+				}
+			
+			}
+		}
+		if (fileNeedsUpdate) saveHighScores();
+		
+		return fileNeedsUpdate;
+	}
+	
+	/**
+	 * add a highscore from player at given position 
+	 * @param i
+	 * @param player
+	 */
+	private void addHighScore(int i, int player) {
+		highScoreNames.add(i, playerNames[player]);
+		highScoreValues.add(i, new Integer(totalScore[player]));
+		if (highScoreNames.size() > N_HIGHSCORES) {
+			highScoreNames.remove(N_HIGHSCORES);
+			highScoreValues.remove(N_HIGHSCORES);
+		}
 	}
 
 	/**
@@ -86,7 +201,7 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 		}
 		findWinner();
 	}
-	
+
 	/**
 	 * Find winners by looping over the total scores of each player and display
 	 * the name[s] of the player with the highest score
@@ -103,8 +218,13 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 				winningScore = totalScore[player];				
 			} 
 			next = " and ";
- 		}
-		display.printMessage("Congratulations, " + winner + ", you won with a total score of " + winningScore + "!");		
+		}
+		if (newHighScore()) {
+			display.printMessage("Congratulations, " + winner + ", you won with a new high score of " + winningScore + "!");
+		} else {
+			display.printMessage("Congratulations, " + winner + ", you won with a total score of " + winningScore + "!");
+		}
+				
 	}
 
 	/**
@@ -293,6 +413,9 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 	private static final int SCORE_YAHTZEE = 50;
 	private static final int SCORE_UPPER_BONUS_LIMIT = 63;
 	private static final int SCORE_UPPER_BONUS = 35;
+	private static final String HIGHSCORE_FILE = "HighScores.txt";
+	private static final int N_HIGHSCORES = 10;
+
 
 	/* Private instance variables */
 	private int nPlayers;
@@ -304,4 +427,7 @@ public class Yahtzee extends GraphicsProgram implements YahtzeeConstants {
 	private int[] upperScore;
 	private int[] lowerScore;
 	private int[] totalScore;
+	private ArrayList<String> highScoreNames;
+	private ArrayList<Integer> highScoreValues;
+
 }

@@ -1,0 +1,10 @@
+200=Two Hundred
+150=One Hundred Fifty
+120=One Hundred Twenty
+120=One Hundred Twenty
+120=One Hundred Twenty
+120=One Hundred Twenty
+114=One Hundred Fourteen
+42=Fourty Two
+14=Fourteen
+0=Zero
